@@ -1,4 +1,4 @@
-package page
+package content
 
 import (
 	"github.com/bep/gitmap"
@@ -46,7 +46,6 @@ type Myypage struct {
 
 	//file source.File
 }
-
 
 func NewMyyPage(title string) Myypage {
 	return Myypage{title: title}
