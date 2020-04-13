@@ -1,40 +1,55 @@
-package content
+package hugo
 
 import (
 	"errors"
-	"fmt"
 	"github.com/gohugoio/hugo/hugofs"
 	"github.com/gohugoio/hugo/hugolib/filesystems"
-	"github.com/gohugoio/hugo/parser/pageparser"
-	"github.com/gohugoio/hugo/resources/page"
 	"github.com/spf13/afero"
 	"path/filepath"
 	"strings"
 )
 
 func Sections(bfs *filesystems.BaseFs) []string {
-	//content_map maybe is the key to help get content sections pages
-	countfiles, filenames, err := countFilesAndGetFilenames(bfs.Content.Fs, "news")
+	var filenames []string
+	files, err := afero.ReadDir(bfs.Content.Fs, "")
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(countfiles)
-	fmt.Println(filenames)
-	fmt.Println(bfs.Content.RealDirs("news"))
-	file, _ := bfs.Content.Fs.Open("about.en.md")
-	fmt.Print(file)
-	test, _ := pageparser.ParseFrontMatterAndContent(file)
-	fmt.Println(test)
-	mypage := NewMyyPage("my title")
-	mypage2 := NewMyyPage("amy title")
-	pages := page.Pages{
-		mypage,
-		mypage2,
+	for _, file := range files {
+		if file.IsDir() {
+			filenames = append(filenames, file.Name())
+		}
 	}
-	//sorted := pages.ByTitle()
-	var ss []string
-	ss = append(ss, pages.String())
-	return ss
+	return filenames
+
+	//file, _ := bfs.Content.Fs.Open("about.en.md")
+	//fmt.Print(file)
+	//test, _ := pageparser.ParseFrontMatterAndContent(file)
+	//fmt.Println(test)
+	//mypage := NewPage("my title")
+	//mypage2 := NewPage("amy title")
+	//pages := page.Pages{
+	//	mypage,
+	//	mypage2,
+	//}
+	////sorted := pages.ByTitle()
+	//var ss []string
+	//ss = append(ss, pages.String())
+	//return ss
+}
+
+func SectionItems(bfs *filesystems.BaseFs, section string) []string {
+	var filenames []string
+	files, err := afero.ReadDir(bfs.Content.Fs, section)
+	if err != nil {
+		panic(err)
+	}
+	for _, file := range files {
+		if filepath.Ext(file.Name()) == ".md" {
+			filenames = append(filenames, file.Name())
+		}
+	}
+	return filenames
 }
 
 func countFilesAndGetFilenames(fs afero.Fs, dirname string) (int, []string, error) {

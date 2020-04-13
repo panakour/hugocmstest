@@ -9,7 +9,7 @@ import (
 	"github.com/gohugoio/hugo/langs"
 	"github.com/gohugoio/hugo/modules"
 	"github.com/gorilla/mux"
-	"github.com/panakour/hugocmstest/content"
+	"github.com/panakour/hugocmstest/hugo"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 	"log"
@@ -19,11 +19,14 @@ import (
 
 //structure from https://github.com/kelvins/GoApiTutorial/
 type App struct {
-	Router *mux.Router
+	Config     *viper.Viper
+	Filesystem *filesystems.BaseFs
+	Router     *mux.Router
 }
 
 func (a *App) Initialize() {
-	a.Router = mux.NewRouter()
+	a.initializeConfig()
+	a.initializeFilesystem()
 	a.initializeRoutes()
 }
 
@@ -31,10 +34,35 @@ func (a *App) Run(addr string) {
 	log.Fatal(http.ListenAndServe(addr, a.Router))
 }
 
+func (a *App) initializeConfig() {
+	a.Config = viper.New()
+	workingDir := "/home/panakour/Code/websolutions"
+	a.Config.Set("workingDir", workingDir)
+}
+
+func (a *App) initializeFilesystem() {
+	fs := hugofs.NewDefault(a.Config)
+	err := initConfig(fs.Source, a.Config)
+	a.Config.Set("multilingual", true)
+
+	if err != nil {
+		panic(err)
+	}
+	p, err := paths.New(fs, a.Config)
+	if err != nil {
+		panic(err)
+	}
+	a.Filesystem, err = filesystems.NewBase(p, nil)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (a *App) initializeRoutes() {
+	a.Router = mux.NewRouter()
 	apiv1 := a.Router.PathPrefix("/api/v1/").Subrouter()
-	apiv1.HandleFunc("/content/sections", listSections).Methods("GET")
-	apiv1.HandleFunc("content/{section}", listContent).Methods("GET")
+	apiv1.HandleFunc("/content/sections", a.listSections).Methods("GET")
+	apiv1.HandleFunc("/content/{section}", a.listContent).Methods("GET")
 	//a.Router.HandleFunc("content/{section}", listContent).Methods("GET")
 	//api.HandleFunc("content/sections", api.createUser).Methods("POST")
 	//api.HandleFunc("/user/{id:[0-9]+}", api.getUser).Methods("GET")
@@ -42,53 +70,15 @@ func (a *App) initializeRoutes() {
 	//api.HandleFunc("/user/{id:[0-9]+}", api.deleteUser).Methods("DELETE")
 }
 
-func listSections(w http.ResponseWriter, r *http.Request) {
-
-	v := viper.New()
-	workingDir := "/home/panakour/go/src/hugo/examples/multilingual"
-	v.Set("workingDir", workingDir)
-	fs := hugofs.NewDefault(v)
-
-	err := initConfig(fs.Source, v)
-	v.Set("multilingual", true)
-
-	if err != nil {
-		panic(err)
-	}
-	p, err := paths.New(fs, v)
-	if err != nil {
-		panic(err)
-	}
-	bfs, err := filesystems.NewBase(p, nil)
-	if err != nil {
-		panic(err)
-	}
-
-	sections := content.Sections(bfs)
+func (a *App) listSections(w http.ResponseWriter, r *http.Request) {
+	sections := hugo.Sections(a.Filesystem)
 	respondWithJSON(w, 200, sections)
-	//countfiles, filenames, err := countFilesAndGetFilenames(bfs.Content.Fs, "news")
-	//if err != nil {
-	//	panic(err)
-	//}
-	//fmt.Println(countfiles)
-	//fmt.Println(filenames)
-	//fmt.Println(bfs.Content.RealDirs("news"))
-	//file, _ := bfs.Content.Fs.Open("about.en.md")
-	//fmt.Print(file)
-	//test, _ := pageparser.ParseFrontMatterAndContent(file)
-	//fmt.Println(test)
-	//mypage := page.NewMyyPage("my title")
-	//mypage2 := page.NewMyyPage("amy title")
-	//pages := resourcesPage.Pages{
-	//	mypage,
-	//	mypage2,
-	//}
-	//sorted := pages.ByTitle()
-	//fmt.Println(sorted)
 }
 
-func listContent(w http.ResponseWriter, r *http.Request) {
-
+func (a *App) listContent(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	items := hugo.SectionItems(a.Filesystem, vars["section"])
+	respondWithJSON(w, 200, items)
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {
