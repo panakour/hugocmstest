@@ -36,7 +36,8 @@ func (a *App) Run(addr string) {
 
 func (a *App) initializeConfig() {
 	a.Config = viper.New()
-	workingDir := "/home/panakour/Code/websolutions"
+	//workingDir := "/home/panakour/Code/websolutions"
+	workingDir := "/home/panakour/Code/svarch/site"
 	a.Config.Set("workingDir", workingDir)
 }
 
@@ -58,12 +59,26 @@ func (a *App) initializeFilesystem() {
 	}
 }
 
+func (a *App) corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+		w.Header().Set("X-Total-Count", "2")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (a *App) initializeRoutes() {
 	a.Router = mux.NewRouter()
 	apiv1 := a.Router.PathPrefix("/api/v1/").Subrouter()
+	apiv1.Use(mux.CORSMethodMiddleware(a.Router), a.corsMiddleware)
+	apiv1.HandleFunc("/content/sections/view/{fileName}", a.ViewPage).Methods("GET", "POST")
 	apiv1.HandleFunc("/content/sections", a.listSections).Methods("GET")
-	apiv1.HandleFunc("/content/{section}", a.listContent).Methods("GET")
-	//a.Router.HandleFunc("content/{section}", listContent).Methods("GET")
+	apiv1.HandleFunc("/content/sections/{section}", a.sectionPages).Methods("GET")
+	apiv1.HandleFunc("/content/sections/{section}/{bundle}", a.bundleContent).Methods("GET")
+
+	//a.Router.HandleFunc("content/{section}", sectionPages).Methods("GET")
 	//api.HandleFunc("content/sections", api.createUser).Methods("POST")
 	//api.HandleFunc("/user/{id:[0-9]+}", api.getUser).Methods("GET")
 	//api.HandleFunc("/user/{id:[0-9]+}", api.updateUser).Methods("PUT")
@@ -75,10 +90,22 @@ func (a *App) listSections(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, 200, sections)
 }
 
-func (a *App) listContent(w http.ResponseWriter, r *http.Request) {
+func (a *App) sectionPages(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	items := hugo.SectionItems(a.Filesystem, vars["section"])
+	pages := hugo.SectionPages(a.Filesystem, vars["section"])
+	respondWithJSON(w, 200, pages)
+}
+
+func (a *App) bundleContent(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	items := hugo.BundleContent(a.Filesystem, vars["section"], vars["bundle"])
 	respondWithJSON(w, 200, items)
+}
+
+func (a *App) ViewPage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	file := hugo.ViewPage(a.Filesystem, vars["fileName"])
+	respondWithJSON(w, 200, file)
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {
