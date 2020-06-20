@@ -9,4 +9,5 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/viper v1.6.1
+	gopkg.in/yaml.v2 v2.2.7
 )

@@ -73,10 +73,9 @@ func (a *App) initializeRoutes() {
 	a.Router = mux.NewRouter()
 	apiv1 := a.Router.PathPrefix("/api/v1/").Subrouter()
 	apiv1.Use(mux.CORSMethodMiddleware(a.Router), a.corsMiddleware)
-	apiv1.HandleFunc("/content/sections/view/{fileName}", a.ViewPage).Methods("GET", "POST")
 	apiv1.HandleFunc("/content/sections", a.listSections).Methods("GET")
 	apiv1.HandleFunc("/content/sections/{section}", a.sectionPages).Methods("GET")
-	apiv1.HandleFunc("/content/sections/{section}/{bundle}", a.bundleContent).Methods("GET")
+	apiv1.HandleFunc("/content/sections/{section}/{bundle}", a.bundlePage).Methods("GET", "POST")
 
 	//a.Router.HandleFunc("content/{section}", sectionPages).Methods("GET")
 	//api.HandleFunc("content/sections", api.createUser).Methods("POST")
@@ -96,16 +95,14 @@ func (a *App) sectionPages(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, 200, pages)
 }
 
-func (a *App) bundleContent(w http.ResponseWriter, r *http.Request) {
+func (a *App) bundlePage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	items := hugo.BundleContent(a.Filesystem, vars["section"], vars["bundle"])
-	respondWithJSON(w, 200, items)
-}
+	page := hugo.BundlePage(a.Filesystem, vars["section"], vars["bundle"])
+	if r.Method == http.MethodPost {
+		hugo.PostBundlePage(a.Filesystem, r, page)
+	}
 
-func (a *App) ViewPage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	file := hugo.ViewPage(a.Filesystem, vars["fileName"])
-	respondWithJSON(w, 200, file)
+	respondWithJSON(w, 200, page)
 }
 
 func respondWithError(w http.ResponseWriter, code int, message string) {

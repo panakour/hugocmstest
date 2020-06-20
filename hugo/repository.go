@@ -1,13 +1,17 @@
 package hugo
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gohugoio/hugo/hugofs"
 	"github.com/gohugoio/hugo/hugolib/filesystems"
 	"github.com/gohugoio/hugo/parser/pageparser"
 	"github.com/spf13/afero"
+	"gopkg.in/yaml.v2"
 	"log"
+	"net/http"
 	"path/filepath"
 	"strings"
 )
@@ -72,42 +76,66 @@ func SectionPages(bfs *filesystems.BaseFs, section string) []PublicPage {
 	//return pages
 }
 
-func BundleContent(bfs *filesystems.BaseFs, section, bundle string) []string {
-	var filenames []string
-	files, err := afero.ReadDir(bfs.Content.Fs, section+"/"+bundle)
-	if err != nil {
-		panic(err)
-	}
-	for _, file := range files {
-		filenames = append(filenames, file.Name())
-		//if filepath.Ext(file.Name()) == ".md" {
-		//}
-	}
-	return filenames
+func BundlePage(bfs *filesystems.BaseFs, section, bundle string) *PublicPage {
+	pages := walkOverContentToGetPages(bfs.Content.Fs, section+"/"+bundle)
+	return &pages[0]
 }
 
-func ViewPage(bfs *filesystems.BaseFs, fileName string) PublicPage {
-	file, err := bfs.Content.Fs.Open(fileName)
+func PostBundlePage(bfs *filesystems.BaseFs, r *http.Request, page *PublicPage) (*PublicPage, error) {
+	d := json.NewDecoder(r.Body)
+	//d.DisallowUnknownFields() // catch unwanted fields
+	// anonymous struct type: handy for one-time use
+	var updatedPage PublicPage
+
+	err := d.Decode(&updatedPage)
+	if err != nil {
+		return nil, err
+	}
+	// optional extra check
+	if d.More() {
+		log.Fatal("extraneous data after JSON object")
+	}
+
+	test, err := updatedPage.encode()
 	if err != nil {
 		panic(err)
 	}
-	content, _ := pageparser.ParseFrontMatterAndContent(file)
-	//title := fmt.Sprintf("%v", content.FrontMatter["title"])
 
-	page := PublicPage{}
-	page.Params = content.FrontMatter
-	//page := NewPage(title)
-	//mypage2 := NewPage("amy title")
-	//pages := page.Pages{
-	//	mypage,
-	//	mypage2,
-	//}
-	return page
+	var pathtest = "/home/panakour/Code/svarch/site/content/project/church-mount-athos-greece/index.en.md"
+	err = afero.WriteFile(afero.NewOsFs(), pathtest, test, 0644)
+	if err != nil {
+		return nil, err
+	}
+	//do updates and save the file
+	return page, nil
 }
 
 func walkOverContentToGetPages(fs afero.Fs, dirname string) []PublicPage {
 	var pages []PublicPage
 	counter := 0
+	isDir, err := afero.IsDir(fs, dirname)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if !isDir {
+		counter++
+		file, err := fs.Open(dirname)
+		if err != nil {
+			panic(err)
+		}
+		content, _ := pageparser.ParseFrontMatterAndContent(file)
+		title := fmt.Sprintf("%v", content.FrontMatter["title"])
+		page := PublicPage{}
+		page.Counter = counter
+		page.Path = dirname
+		page.Name = title
+		page.Params = content.FrontMatter
+		page.Content = string(content.Content)
+		pages = append(pages, page)
+		return pages
+	}
+
 	wf := func(path string, info hugofs.FileMetaInfo, err error) error {
 		if err != nil {
 			return err
@@ -183,4 +211,14 @@ func countFilesAndGetFilenames(fs afero.Fs, dirname string) (int, []string, erro
 	}
 
 	return counter, filenames, nil
+}
+
+func (publicPage *PublicPage) encode() ([]byte, error) {
+	frontMatter, err := yaml.Marshal(publicPage)
+	body := publicPage.Content
+	if err != nil {
+		return nil, err
+	}
+	separator := []byte("---\n")
+	return bytes.Join([][]byte{separator, frontMatter, separator, []byte(body)}, nil), nil
 }
