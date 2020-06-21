@@ -1,7 +1,11 @@
 package main
 
+import "github.com/panakour/hugocmstest/hugo"
+
 func main() {
-	a := App{}
-	a.Initialize()
-	a.Run(":8080")
+
+	hugo.Build()
+	//a := App{}
+	//a.Initialize()
+	//a.Run(":8080")
 }

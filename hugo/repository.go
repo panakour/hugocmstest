@@ -96,6 +96,8 @@ func PostBundlePage(bfs *filesystems.BaseFs, r *http.Request, page *PublicPage) 
 		log.Fatal("extraneous data after JSON object")
 	}
 
+	//test1 := parser.InterfaceToFrontMatter(updatedPage, metadecoders.YAML, )
+
 	test, err := updatedPage.encode()
 	if err != nil {
 		panic(err)
