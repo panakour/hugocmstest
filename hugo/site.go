@@ -6,12 +6,12 @@ import (
 	"github.com/gohugoio/hugo/hugolib"
 	"github.com/gohugoio/hugo/parser/pageparser"
 	"github.com/spf13/afero"
-	"github.com/spf13/viper"
 	"log"
 	"os"
 )
 
-func LoadConfig() *viper.Viper {
+func LoadConfig() deps.DepsCfg {
+
 	fs := afero.NewOsFs()
 	config, configFiles, err := hugolib.LoadConfig(
 		hugolib.ConfigSourceDescriptor{
@@ -28,16 +28,16 @@ func LoadConfig() *viper.Viper {
 
 	fmt.Print(config)
 	fmt.Print(configFiles)
-	return config
+
+	var cfgDeps = deps.DepsCfg{
+		Cfg: config,
+	}
+	return cfgDeps
 }
 
 func Build() error {
 
-	var cfgDeps = deps.DepsCfg{
-		Cfg: LoadConfig(),
-	}
-
-	site, err := hugolib.NewHugoSites(cfgDeps)
+	site, err := hugolib.NewHugoSites(LoadConfig())
 	if err != nil {
 		panic(err)
 	}
