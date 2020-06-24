@@ -1,11 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/gohugoio/hugo/deps"
 	"github.com/gohugoio/hugo/hugolib"
+	"github.com/gohugoio/hugo/parser"
+	"github.com/gohugoio/hugo/parser/metadecoders"
 	"github.com/gohugoio/hugo/parser/pageparser"
 	"github.com/gohugoio/hugo/resources/page"
+	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 	"log"
 )
@@ -46,39 +50,17 @@ func Sections(pages page.Pages) []Section {
 }
 
 func savePage(page ContentPage) {
-
+	var newContent bytes.Buffer
+	err := parser.InterfaceToFrontMatter(page.Params, metadecoders.YAML, &newContent)
+	if err != nil {
+		panic(err)
+	}
+	newContent.Write([]byte(page.Content))
+	err = afero.WriteFile(afero.NewOsFs(), page.Filename, newContent.Bytes(), 0644)
+	if err != nil {
+		panic(err)
+	}
 }
-
-//func ParsePage() (*PublicPage, error) {
-//	d := json.NewDecoder(r.Body)
-//	//d.DisallowUnknownFields() // catch unwanted fields
-//	// anonymous struct type: handy for one-time use
-//	var updatedPage PublicPage
-//
-//	err := d.Decode(&updatedPage)
-//	if err != nil {
-//		return nil, err
-//	}
-//	// optional extra check
-//	if d.More() {
-//		log.Fatal("extraneous data after JSON object")
-//	}
-//
-//	//test1 := parser.InterfaceToFrontMatter(updatedPage, metadecoders.YAML, )
-//
-//	//test, err := updatedPage.encode()
-//	//if err != nil {
-//	//	panic(err)
-//	//}
-//	//
-//	//var pathtest = "/home/panakour/Code/svarch/site/ContentPage/project/church-mount-athos-greece/index.en.md"
-//	//err = afero.WriteFile(afero.NewOsFs(), pathtest, test, 0644)
-//	//if err != nil {
-//	//	return nil, err
-//	//}
-//	////do updates and save the file
-//	return page, nil
-//}
 
 func BuildContent(pages page.Pages) []ContentPage {
 	var contentItems []ContentPage
