@@ -87,7 +87,17 @@ func (a *App) sectionPages(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) save(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.FormValue("params"))
+	var contentPage ContentPage
+	params := []byte(r.FormValue("params"))
+	filename := r.FormValue("filename")
+	content := r.FormValue("content")
+	contentPage.Filename = filename
+	contentPage.Content = content
+	if err := json.Unmarshal(params, &contentPage.Params); err != nil {
+		panic(err)
+	}
+	fmt.Println(contentPage)
+	savePage(contentPage)
 	//page := hugo.BundlePage(a.Filesystem, vars["section"], vars["bundle"])
 	//hugo.PostBundlePage(a.Filesystem, r, page)
 
@@ -100,7 +110,7 @@ func respondWithError(w http.ResponseWriter, code int, message string) {
 
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, _ := json.Marshal(payload)
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("ContentPage-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(response)
 }

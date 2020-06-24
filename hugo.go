@@ -10,7 +10,7 @@ import (
 	"log"
 )
 
-type Content struct {
+type ContentPage struct {
 	Filename string                 `json:"filename"`
 	Params   map[string]interface{} `json:"params"`
 	Content  string                 `json:"content"`
@@ -45,6 +45,10 @@ func Sections(pages page.Pages) []Section {
 	return sections
 }
 
+func savePage(page ContentPage) {
+
+}
+
 //func ParsePage() (*PublicPage, error) {
 //	d := json.NewDecoder(r.Body)
 //	//d.DisallowUnknownFields() // catch unwanted fields
@@ -67,7 +71,7 @@ func Sections(pages page.Pages) []Section {
 //	//	panic(err)
 //	//}
 //	//
-//	//var pathtest = "/home/panakour/Code/svarch/site/Content/project/church-mount-athos-greece/index.en.md"
+//	//var pathtest = "/home/panakour/Code/svarch/site/ContentPage/project/church-mount-athos-greece/index.en.md"
 //	//err = afero.WriteFile(afero.NewOsFs(), pathtest, test, 0644)
 //	//if err != nil {
 //	//	return nil, err
@@ -76,12 +80,12 @@ func Sections(pages page.Pages) []Section {
 //	return page, nil
 //}
 
-func BuildContent(pages page.Pages) []Content {
-	var contentItems []Content
+func BuildContent(pages page.Pages) []ContentPage {
+	var contentItems []ContentPage
 	for _, p := range pages {
 		if p.File().IsZero() {
-			// No Content file.
-			log.Fatal("no Content file...")
+			// No ContentPage file.
+			log.Fatal("no ContentPage file...")
 		}
 		errMsg := fmt.Errorf("Error processing file %q", p.Path())
 		f := p.File()
@@ -91,7 +95,7 @@ func BuildContent(pages page.Pages) []Content {
 			log.Fatal(errMsg)
 		}
 		pf, err := pageparser.ParseFrontMatterAndContent(file)
-		contentItem := Content{
+		contentItem := ContentPage{
 			Filename: f.Filename(),
 			Params:   pf.FrontMatter,
 			Content:  string(pf.Content),
