@@ -8,7 +8,6 @@ import (
 	"github.com/gohugoio/hugo/resources/page"
 	"github.com/gohugoio/hugo/tpl/collections"
 	"github.com/gorilla/mux"
-	"github.com/panakour/hugocmstest/hugo"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 	"log"
@@ -37,7 +36,7 @@ func (a *App) initializeConfig() {
 	config, configFiles, err := hugolib.LoadConfig(
 		hugolib.ConfigSourceDescriptor{
 			Fs: fs,
-			//Path:         "/home/panakour/Code/websolutions/site/config/_default",
+			//Filename:         "/home/panakour/Code/websolutions/site/config/_default",
 			WorkingDir:   "/home/panakour/Code/websolutions",
 			AbsConfigDir: "config",
 			Filename:     "config.yaml",
@@ -66,45 +65,31 @@ func (a *App) initializeRoutes() {
 	apiv1.Use(mux.CORSMethodMiddleware(a.Router), a.corsMiddleware)
 	apiv1.HandleFunc("/content/sections", a.listSections).Methods("GET")
 	apiv1.HandleFunc("/content/sections/{section}", a.sectionPages).Methods("GET")
-	apiv1.HandleFunc("/content/sections/{section}/{bundle}", a.bundlePage).Methods("GET", "POST")
-
-	//a.Router.HandleFunc("content/{section}", sectionPages).Methods("GET")
-	//api.HandleFunc("content/sections", api.createUser).Methods("POST")
-	//api.HandleFunc("/user/{id:[0-9]+}", api.getUser).Methods("GET")
-	//api.HandleFunc("/user/{id:[0-9]+}", api.updateUser).Methods("PUT")
-	//api.HandleFunc("/user/{id:[0-9]+}", api.deleteUser).Methods("DELETE")
-
-	apiv2 := a.Router.PathPrefix("/api/v2/").Subrouter()
-	apiv2.Use(mux.CORSMethodMiddleware(a.Router), a.corsMiddleware)
-	apiv2.HandleFunc("/content/sections", a.listSections).Methods("GET")
+	apiv1.HandleFunc("/content/save", a.save).Methods(http.MethodPost)
 }
 
 func (a *App) listSections(w http.ResponseWriter, r *http.Request) {
-	site, _ := hugo.New(a.Config)
+	site, _ := NewSite(a.Config)
 	sections := site.Sites[0].Info.Sections()
-	content := hugo.Sections(sections)
+	content := Sections(sections)
 	respondWithJSON(w, 200, content)
 }
 
 func (a *App) sectionPages(w http.ResponseWriter, r *http.Request) {
-	site, _ := hugo.New(a.Config)
+	site, _ := NewSite(a.Config)
 	ns := collections.New(site.Deps)
 	vars := mux.Vars(r)
 	test, _ := ns.Where(site.Sites[0].RegularPages(), "Section", vars["section"])
-
 	sfsd := (test).(page.Pages)
-
-	conetn := hugo.BuildContent(sfsd)
+	conetn := BuildContent(sfsd)
 
 	respondWithJSON(w, 200, conetn)
 }
 
-func (a *App) bundlePage(w http.ResponseWriter, r *http.Request) {
-	//vars := mux.Vars(r)
+func (a *App) save(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.FormValue("params"))
 	//page := hugo.BundlePage(a.Filesystem, vars["section"], vars["bundle"])
-	//if r.Method == http.MethodPost {
-	//	hugo.PostBundlePage(a.Filesystem, r, page)
-	//}
+	//hugo.PostBundlePage(a.Filesystem, r, page)
 
 	//respondWithJSON(w, 200, page)
 }
