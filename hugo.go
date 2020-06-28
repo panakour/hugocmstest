@@ -18,6 +18,7 @@ type ContentPage struct {
 	Filename string                 `json:"filename"`
 	Params   map[string]interface{} `json:"params"`
 	Content  string                 `json:"content"`
+	Section  Section                `json:"section"`
 }
 
 type Section struct {
@@ -25,7 +26,7 @@ type Section struct {
 	Title       string `json:"title"`
 }
 
-func NewSite(config *viper.Viper) (*hugolib.HugoSites, error) {
+func NewSites(config *viper.Viper) (*hugolib.HugoSites, error) {
 	var cfgDeps = deps.DepsCfg{
 		Cfg: config,
 	}
@@ -56,7 +57,9 @@ func savePage(page ContentPage) {
 		panic(err)
 	}
 	newContent.Write([]byte(page.Content))
-	err = afero.WriteFile(afero.NewOsFs(), page.Filename, newContent.Bytes(), 0644)
+	fs := afero.NewOsFs()
+	fs.MkdirAll(page.Filename, 0755)
+	err = afero.WriteFile(fs, page.Filename, newContent.Bytes(), 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -81,6 +84,9 @@ func BuildContent(pages page.Pages) []ContentPage {
 			Filename: f.Filename(),
 			Params:   pf.FrontMatter,
 			Content:  string(pf.Content),
+			Section: Section{
+				SectionPath: f.Section(),
+			},
 		}
 		if err != nil {
 			file.Close()
