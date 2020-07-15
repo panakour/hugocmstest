@@ -35,12 +35,12 @@ func (a *App) initializeConfig() {
 	fs := afero.NewOsFs()
 	config, configFiles, err := hugolib.LoadConfig(
 		hugolib.ConfigSourceDescriptor{
-			Fs: fs,
-			//Filename:         "/home/panakour/Code/websolutions/site/config/_default",
-			WorkingDir:   "/home/panakour/Code/websolutions",
+			Fs:           fs,
+			Filename:     "/home/panakour/Code/svarch/site/config/_default/config.yaml",
+			WorkingDir:   os.Getenv("Work_Dir"),
 			AbsConfigDir: "config",
-			Filename:     "config.yaml",
-			Environ:      os.Environ()})
+			//Filename:     "config.yaml",
+			Environ: os.Environ()})
 
 	if err != nil {
 		panic(err)
@@ -119,13 +119,16 @@ func (a *App) respondWithError(w http.ResponseWriter, code int, message string) 
 
 func (a *App) respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 
-	SiteWorkingDir := a.Config.Get("WorkingDir")
 	hugoResponse := struct {
-		Info map[string]interface{} `json:"info"`
+		Site map[string]interface{} `json:"site"`
+		Body interface{}            `json:"body"`
 	}{
-		Info:  ,
+		Site: map[string]interface{}{
+			"workingDir": os.Getenv("Work_Dir"),
+			"languages":  a.Sites.Languages,
+		},
+		Body: payload,
 	}
-
 	response, _ := json.Marshal(hugoResponse)
 	w.Header().Set("ContentPage-Type", "application/json")
 	w.WriteHeader(code)
